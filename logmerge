@@ -154,7 +154,7 @@ processList() {
 	for m_file in $m_files
 	do
 		debug "$m_file"
-		echo $m_file | grep '\.gz$' >/dev/null && m_cat='zcat '$m_file'|' || m_cat='<'$m_file
+		echo $m_file | grep '\.gz$' >/dev/null && m_cat='gzip -dc '$m_file'|' || m_cat='<'$m_file
 		eval $m_cat processFile $m_file $m_tempwrite
 	done
 }
