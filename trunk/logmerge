@@ -1,0 +1,184 @@
+#!/bin/sh
+
+
+# logmerge - sort and merge chronologically any kind of logfiles
+#
+# Copyright (c) 2012 Ildar Shaimordanov
+#
+# Permission is hereby granted, free of charge, to any person obtaining a 
+# copy of this software and associated documentation files (the "Software"), 
+# to deal in the Software without restriction, including without limitation 
+# the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+# and/or sell copies of the Software, and to permit persons to whom the 
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included 
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
+# OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF 
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN 
+# NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
+# DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
+# OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE 
+# USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+if [ -z "$1" ]
+then
+	cat <<EOL
+Usage: $(basename $0) [options]
+
+Small and powerful script to merge two or more logfiles so that multilined 
+entries appear in the correct chronological order without breaks of entries. 
+Optional arguments control an adding of descriptive fields at the beginning 
+of each line in the resulting combined logfile. 
+
+-h, --hostname    Print hostname
+-f, --filename    Print the name of file
+-n, --linenumber  Print the numbers of lines within the original file
+-d, --debug       Run in the debug mode
+-t, --tempfile    Use tempfile during execution
+
+--no-cleanup      Don't clean up the resulting file; keep interim data there
+--ts-match=MATCH  The Perl regex that will look for timestamps within strings
+--ts-subst=SUBST  The transformation string that will modify timestamps
+EOL
+	exit
+fi
+
+
+m_hostname=
+m_filename=
+m_linenumber=
+
+m_debug=
+
+m_tempfile=
+m_tempwrite=
+m_sort='|sort'
+
+m_no_cleanup=
+m_ts_match='^(\d+)/(\d+)/(\d+) (\d+):(\d+):(\d+).(\d+)'
+m_ts_subst='$3$1$2$4$5$6$7'
+
+m_files=
+
+for m_arg in "$@"
+do
+	case "$m_arg" in
+	-h | --hosthame)
+		m_hostname='['$(hostname)']\t'
+		;;
+	-f | --filename)
+		m_filename='[$1]\t'
+		;;
+	-n | --linenumber)
+		m_linenumber='[$3]\t'
+		;;
+	-d | --debug)
+		m_debug=1
+		;;
+	-t | --tempfile)
+		m_tempfile=$(mktemp -u).$$
+		m_tempwrite='>>'$m_tempfile
+		m_sort='&&sort '$m_tempfile
+		;;
+	--no-cleanup)
+		m_no_cleanup=1
+		;;
+	--ts-match=*)
+		m_ts_match=$(echo $m_arg | cut -d= -f2-)
+		;;
+	--ts-subst=*)
+		m_ts_subst=$(echo $m_arg | cut -d= -f2-)
+		;;
+	--apache-access)
+		m_ts_match='\[(\d+)/(\w+)/(\d+):(\d+):(\d+):(\d+) [^\]]+\]'
+		m_ts_subst='$3$m{$2}$1$4$5$6'
+		;;
+	--apache-error)
+		m_ts_match='^\[\w+ (\w+) (\d+) (\d+):(\d+):(\d+) (\d+)\]'
+		m_ts_subst='$6$m{$1}$2$3$4$5'
+		;;
+	*)
+		m_files=$(echo $m_files $m_arg)
+		;;
+	esac
+done
+
+
+debug() {
+	[ "$m_debug" ] && echo $(date "+%F %T.%N" | cut -c-23): $1>&2
+}
+
+
+processFile() {
+	perl -ne '
+	BEGIN	{
+		our $name = "'$1'";
+		our $prev = "";
+		our $marker = "";
+		our $recnum = 0;
+
+		our %m = (
+			Jan => "01", Feb => "02", Mar => "03", Apr => "04", 
+			May => "05", Jun => "06", Jul => "07", Aug => "08", 
+			Sep => "09", Oct => "10", Nov => "11", Dec => "12", 
+		);
+
+		sub printIF {
+			print $prev;
+			$prev = "";
+		}
+	}
+
+	if ( m|'"$m_ts_match"'| ) {
+		printIF;
+
+		$recnum++;
+		$marker = sprintf "'"$m_ts_subst"'_%s_%07d_%%07d %%s", $name, $recnum;
+	}
+	$prev .= sprintf $marker, $., $_;
+
+	END	{
+		printIF;
+	}
+	'
+}
+
+
+processList() {
+	debug "Processing the list of the files"
+
+	for m_file in $m_files
+	do
+		debug "$m_file"
+		echo $m_file | grep '\.gz$' >/dev/null && m_cat='zcat '$m_file'|' || m_cat='<'$m_file
+		eval $m_cat processFile $m_file $m_tempwrite
+	done
+}
+
+
+cleanup() {
+	[ -n "$m_no_cleanup" ] && tee || perl -pe 's/^.+?_(.+?)_0*(\d+)_0*(\d+) /'$m_hostname"$m_filename""$m_linenumber"'/'
+}
+
+
+if [ "$m_tempfile" ]
+then
+	debug "Creating $m_tempfile"
+	cp /dev/null $m_tempfile
+fi
+
+eval processList $m_files $m_sort | cleanup
+
+if [ "$m_tempfile" ]
+then
+	debug "Deleting $m_tempfile"
+	rm $m_tempfile
+fi
+
+
+#EOF
+
