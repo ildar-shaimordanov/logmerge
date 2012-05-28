@@ -24,7 +24,7 @@
 # USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-if [ -z "$1" ]
+if [ $# -eq 0 ]
 then
 	cat <<EOL
 Usage: $(basename $0) [options]
@@ -154,6 +154,11 @@ processList() {
 	for m_file in $m_files
 	do
 		debug "$m_file"
+		if [ ! -f "$m_file" ]
+		then
+			debug "File not found: '$m_file'"
+			continue
+		fi
 		echo $m_file | grep '\.gz$' >/dev/null && m_cat='gzip -dc '$m_file'|' || m_cat='<'$m_file
 		eval $m_cat processFile $m_file $m_tempwrite
 	done
@@ -171,7 +176,7 @@ then
 	cp /dev/null $m_tempfile
 fi
 
-eval processList $m_files $m_sort | cleanup
+eval processList '$m_files' $m_sort | cleanup
 
 if [ "$m_tempfile" ]
 then
