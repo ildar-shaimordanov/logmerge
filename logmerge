@@ -102,13 +102,13 @@ do
 		m_ts_subst='$6$m{$1}$2$3$4$5'
 		;;
 	*)
-		m_files=$(echo $m_files $m_arg)
+		m_files="$m_files \"$m_arg\""
 		;;
 	esac
 done
 
 
-debug() {
+logDebug() {
 	[ "$m_debug" ] && echo $(date "+%F %T.%N" | cut -c-23): $1>&2
 }
 
@@ -149,14 +149,16 @@ processFile() {
 
 
 processList() {
-	debug "Processing the list of the files"
+	logDebug "Processing the list of the files"
 
-	for m_file in $m_files
+	eval set -- $m_files
+
+	for m_file in "$@"
 	do
-		debug "$m_file"
+		logDebug "$m_file"
 		if [ ! -f "$m_file" ]
 		then
-			debug "File not found: '$m_file'"
+			logDebug "File not found: '$m_file'"
 			continue
 		fi
 		echo $m_file | grep '\.gz$' >/dev/null && m_cat='gzip -dc '$m_file'|' || m_cat='<'$m_file
@@ -176,7 +178,7 @@ then
 	cp /dev/null $m_tempfile
 fi
 
-eval processList '$m_files' $m_sort | cleanup
+eval processList $m_sort | cleanup
 
 if [ "$m_tempfile" ]
 then
@@ -186,4 +188,5 @@ fi
 
 
 #EOF
+
 
