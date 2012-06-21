@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 
 # logmerge - sort and merge chronologically any kind of logfiles
@@ -32,7 +32,8 @@ Usage: $(basename $0) [options]
 Small and powerful script to merge two or more logfiles so that multilined 
 entries appear in the correct chronological order without breaks of entries. 
 Optional arguments control an adding of descriptive fields at the beginning 
-of each line in the resulting combined logfile. 
+of each line in the resulting combined logfile. Reading of .gz/.bz2 files is 
+available. 
 
 -h, --hostname    Print hostname
 -f, --filename    Print the name of file
@@ -161,14 +162,16 @@ processList() {
 			logDebug "File not found: '$m_file'"
 			continue
 		fi
-		echo $m_file | grep '\.gz$' >/dev/null && m_cat='gzip -dc '$m_file'|' || m_cat='<'$m_file
+		m_cat='<'$m_file
+		echo $m_file | grep '\.gz$' >/dev/null && m_cat='gzip -dc '$m_file'|'
+		echo $m_file | grep '\.bz2$' >/dev/null && m_cat='bzip2 -dc '$m_file'|'
 		eval $m_cat processFile $m_file $m_tempwrite
 	done
 }
 
 
 cleanup() {
-	[ -n "$m_no_cleanup" ] && tee || perl -pe 's/^.+?_(.+?)_0*(\d+)_0*(\d+) /'$m_hostname"$m_filename""$m_linenumber"'/'
+	[ -n "$m_no_cleanup" ] && tee || perl -pe 's/^.+?_(.+?)_0*(\d+)_0*(\d+) /'"$m_hostname""$m_filename""$m_linenumber"'/'
 }
 
 
