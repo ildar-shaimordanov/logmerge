@@ -177,7 +177,7 @@ cleanup() {
 
 if [ "$m_tempfile" ]
 then
-	debug "Creating $m_tempfile"
+	logDebug "Creating $m_tempfile"
 	cp /dev/null $m_tempfile
 fi
 
@@ -185,7 +185,7 @@ eval processList $m_sort | cleanup
 
 if [ "$m_tempfile" ]
 then
-	debug "Deleting $m_tempfile"
+	logDebug "Deleting $m_tempfile"
 	rm $m_tempfile
 fi
 
