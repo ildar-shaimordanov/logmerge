@@ -51,5 +51,6 @@ java.lang.Throwable
 ...
 </pre>
 
-<http://mac.softpedia.com/get/Developer-Tools/logmerge.shtml>
+[
 ![](http://s1.softpedia-static.com/base_img/softpedia_free_award_f.gif)
+](http://mac.softpedia.com/get/Developer-Tools/logmerge.shtml)
