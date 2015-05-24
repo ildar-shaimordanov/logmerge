@@ -18,7 +18,7 @@ Merge all `error.log*` Apache files, including `gzip`ed files too, and store to 
 [Fri Apr 23 22:14:21 2010] <the rest of the entry>
 ```
 
-### 2. Merge all Apache access files===
+### 2. Merge all Apache access files
 
 ```
 find /export/home/ -name 'access.log' | xargs ./logmerge -f -n --apache-access > all.log
@@ -31,7 +31,7 @@ The utility considers that the Apache's access logfiles consist of the following
 <the begin of the entry> [15/Feb/2008:14:18:49 +0300] <the rest of the entry>
 ```
 
-### 3. Merge multiline entries from several files chronologically===
+### 3. Merge multiline entries from several files chronologically
 
 ```
 ./logmerge -f -n log/*.log | gzip -c > all.gz
