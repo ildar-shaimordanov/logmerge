@@ -3,7 +3,7 @@
 
 # logmerge - sort and merge chronologically any kind of logfiles
 #
-# Copyright (c) 2012, 2014 Ildar Shaimordanov
+# Copyright (c) 2012, 2014, 2015 Ildar Shaimordanov
 #
 # Permission is hereby granted, free of charge, to any person obtaining a 
 # copy of this software and associated documentation files (the "Software"), 
@@ -26,7 +26,7 @@
 
 if [ $# -eq 0 ]
 then
-	cat <<EOL
+	cat - <<EOL
 Usage: $(basename $0) [options]
 
 Small and powerful script to merge two or more logfiles so that multilined 
@@ -69,7 +69,7 @@ for m_arg in "$@"
 do
 	case "$m_arg" in
 	-h | --hosthame)
-		m_hostname='['$(hostname)']\t'
+		m_hostname='['${HOSTNAME}']\t'
 		;;
 	-f | --filename)
 		m_filename='[$1]\t'
@@ -81,18 +81,18 @@ do
 		m_debug=1
 		;;
 	-t | --tempfile)
-		m_tempfile=$(mktemp -u).$$
+		m_tempfile="$(mktemp -u).$$"
 		m_tempwrite='>>'$m_tempfile
-		m_sort='&&sort '$m_tempfile
+		m_sort='&&sort -m '$m_tempfile
 		;;
 	--no-cleanup)
 		m_no_cleanup=1
 		;;
 	--ts-match=*)
-		m_ts_match=$(echo $m_arg | cut -d= -f2-)
+		m_ts_match="${m_arg#*=}"
 		;;
 	--ts-subst=*)
-		m_ts_subst=$(echo $m_arg | cut -d= -f2-)
+		m_ts_subst="${m_arg#*=}"
 		;;
 	--apache-access)
 		m_ts_match='\[(\d+)/(\w+)/(\d+):(\d+):(\d+):(\d+) [^\]]+\]'
@@ -163,8 +163,8 @@ processList() {
 			continue
 		fi
 		m_cat='<'$m_file
-		echo $m_file | grep '\.gz$' >/dev/null && m_cat='gzip -dc '$m_file'|'
-		echo $m_file | grep '\.bz2$' >/dev/null && m_cat='bzip2 -dc '$m_file'|'
+		[ "${m_file##*.}" == "gz" ] && m_cat='gzip -dc '$m_file'|'
+		[ "${m_file##*.}" == "bz2" ] && m_cat='bzip2 -dc '$m_file'|'
 		eval $m_cat processFile $m_file $m_tempwrite
 	done
 }
@@ -191,5 +191,3 @@ fi
 
 
 #EOF
-
-
