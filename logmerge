@@ -83,7 +83,7 @@ do
 	-t | --tempfile)
 		m_tempfile="$(mktemp -u).$$"
 		m_tempwrite='>>'$m_tempfile
-		m_sort='&&sort -m '$m_tempfile
+		m_sort='&&sort '$m_tempfile
 		;;
 	--no-cleanup)
 		m_no_cleanup=1
